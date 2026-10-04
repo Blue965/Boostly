@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Profile, PageConfig, LinkItem } from '../types/database.types';
 import { sanitizeUrl } from '../lib/utils';
+import { ProfileCard } from '../components/preview/ProfileCard';
 
 export const PublicPage: React.FC = () => {
   const { username } = useParams<{ username: string }>();
@@ -44,8 +45,8 @@ export const PublicPage: React.FC = () => {
   if (!profile || !page) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Page introuvable.</div>;
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-between p-6 bg-cover bg-center bg-fixed"
+    <main
+      className="min-h-screen flex flex-col items-center justify-center gap-8 p-5 bg-cover bg-center bg-fixed sm:p-8"
       style={{
         backgroundColor: page.background_color,
         backgroundImage: page.background_image_url
@@ -54,46 +55,12 @@ export const PublicPage: React.FC = () => {
         fontFamily: page.font_family,
       }}
     >
-      <div className="w-full max-w-md flex flex-col items-center space-y-6 pt-8">
-        <div className="w-24 h-24 rounded-full bg-slate-800 border-2 border-white/20 flex items-center justify-center text-3xl font-bold text-white overflow-hidden">
-          {profile.avatar_url ? <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" /> : (profile.display_name || profile.username).charAt(0).toUpperCase()}
-        </div>
-        <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-white">{page.title || profile.display_name || `@${profile.username}`}</h1>
-          {profile.bio && <p className="text-sm text-slate-300 max-w-sm">{profile.bio}</p>}
-        </div>
-
-        <div className="w-full space-y-3 pt-4">
-          {links.length === 0 ? (
-            <div className="text-center text-sm text-slate-500 py-6">Aucun lien disponible.</div>
-          ) : (
-            links.map((link) => (
-              <a
-                key={link.id}
-                href={link.url}
-                onClick={(e) => handleLinkClick(link, e)}
-                className={`w-full py-3 px-5 block text-center font-medium transition shadow-sm hover:scale-[1.01] ${
-                  page.button_style === 'pill' ? 'rounded-full' :
-                  page.button_style === 'square' ? 'rounded-none' :
-                  page.button_style === 'outline' ? 'border border-blue-500 bg-transparent text-white' : 'rounded-xl'
-                }`}
-                style={{
-                  backgroundColor: page.button_style === 'outline' ? 'transparent' : page.accent_color,
-                  color: '#ffffff'
-                }}
-              >
-                {link.title}
-              </a>
-            ))
-          )}
-        </div>
-      </div>
-
-      {!page.hide_branding && (
-        <div className="pt-12 pb-4 text-xs text-slate-500 tracking-wider">
-          Powered by <span className="font-bold text-slate-300">BOOSTLY</span>
-        </div>
-      )}
-    </div>
+      <ProfileCard
+        profile={profile}
+        page={page}
+        links={links}
+        onLinkClick={(link, event) => void handleLinkClick(link, event)}
+      />
+    </main>
   );
 };

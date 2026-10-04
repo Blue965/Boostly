@@ -18,9 +18,12 @@ export interface PageConfig {
   theme: string;
   background_color: string;
   background_image_url: string | null;
+  card_theme: string;
   accent_color: string;
   button_style: 'rounded' | 'pill' | 'square' | 'outline';
   font_family: string;
+  music_url: string | null;
+  music_type: string | null;
   hide_branding: boolean;
   created_at: string;
   updated_at: string;

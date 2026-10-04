@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useUserPage } from '../../hooks/useUserPage';
-import { PRESET_THEMES } from '../../lib/constants';
+import { PRESET_THEMES, PROFILE_CARD_THEMES } from '../../lib/constants';
 import {
-  getUserImagePath,
-  removeUserImage,
+  getUserMediaPath,
+  removeUserMedia,
   updatePage,
   updateProfile,
-  uploadUserImage,
-  UploadedUserImage,
+  uploadUserMedia,
+  UploadedUserMedia,
 } from '../../services/pageService';
 import { LivePreview } from '../../components/preview/LivePreview';
 import { PageConfig, Profile } from '../../types/database.types';
@@ -31,8 +31,10 @@ export const AppearanceEditor: React.FC = () => {
   const [draftPage, setDraftPage] = useState<PageConfig | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
+  const [musicFile, setMusicFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string | null>(null);
+  const [musicPreview, setMusicPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveNotice, setSaveNotice] = useState('');
@@ -42,6 +44,7 @@ export const AppearanceEditor: React.FC = () => {
     if (page) setDraftPage({ ...page });
     setAvatarFile(null);
     setBackgroundFile(null);
+    setMusicFile(null);
   }, [profile, page]);
 
   useEffect(() => {
@@ -64,6 +67,16 @@ export const AppearanceEditor: React.FC = () => {
     return () => URL.revokeObjectURL(url);
   }, [backgroundFile, draftPage?.background_image_url]);
 
+  useEffect(() => {
+    if (!musicFile) {
+      setMusicPreview(draftPage?.music_url ?? null);
+      return;
+    }
+    const url = URL.createObjectURL(musicFile);
+    setMusicPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [musicFile, draftPage?.music_url]);
+
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!profile || !page || !draftProfile || !draftPage || !user) return;
@@ -71,13 +84,15 @@ export const AppearanceEditor: React.FC = () => {
     setSaving(true);
     setSaveError('');
     setSaveNotice('');
-    let uploadedAvatar: UploadedUserImage | null = null;
-    let uploadedBackground: UploadedUserImage | null = null;
+    let uploadedAvatar: UploadedUserMedia | null = null;
+    let uploadedBackground: UploadedUserMedia | null = null;
+    let uploadedMusic: UploadedUserMedia | null = null;
     let pageUpdateAttempted = false;
 
     try {
-      if (avatarFile) uploadedAvatar = await uploadUserImage(user.id, 'avatar', avatarFile);
-      if (backgroundFile) uploadedBackground = await uploadUserImage(user.id, 'background', backgroundFile);
+      if (avatarFile) uploadedAvatar = await uploadUserMedia(user.id, 'avatar', avatarFile);
+      if (backgroundFile) uploadedBackground = await uploadUserMedia(user.id, 'background', backgroundFile);
+      if (musicFile) uploadedMusic = await uploadUserMedia(user.id, 'music', musicFile);
 
       const nextProfile = {
         ...draftProfile,
@@ -86,6 +101,8 @@ export const AppearanceEditor: React.FC = () => {
       const nextPage = {
         ...draftPage,
         background_image_url: uploadedBackground?.publicUrl ?? draftPage.background_image_url,
+        music_url: uploadedMusic?.publicUrl ?? draftPage.music_url,
+        music_type: uploadedMusic?.contentType ?? draftPage.music_type,
       };
 
       pageUpdateAttempted = true;
@@ -94,9 +111,12 @@ export const AppearanceEditor: React.FC = () => {
         theme: nextPage.theme,
         background_color: nextPage.background_color,
         background_image_url: nextPage.background_image_url,
+        card_theme: nextPage.card_theme,
         accent_color: nextPage.accent_color,
         button_style: nextPage.button_style,
         font_family: nextPage.font_family,
+        music_url: nextPage.music_url,
+        music_type: nextPage.music_type,
       });
       try {
         await updateProfile(profile.id, {
@@ -110,9 +130,12 @@ export const AppearanceEditor: React.FC = () => {
           theme: page.theme,
           background_color: page.background_color,
           background_image_url: page.background_image_url,
+          card_theme: page.card_theme,
           accent_color: page.accent_color,
           button_style: page.button_style,
           font_family: page.font_family,
+          music_url: page.music_url,
+          music_type: page.music_type,
         });
         pageUpdateAttempted = false;
         throw profileError;
@@ -124,28 +147,30 @@ export const AppearanceEditor: React.FC = () => {
       setDraftPage(nextPage);
       setAvatarFile(null);
       setBackgroundFile(null);
+      setMusicFile(null);
       setSaveNotice('Tes personnalisations sont enregistrées.');
 
       const oldImagePaths = [
-        draftProfile.avatar_url !== nextProfile.avatar_url ? getUserImagePath(profile.avatar_url, user.id) : null,
+        draftProfile.avatar_url !== nextProfile.avatar_url ? getUserMediaPath(profile.avatar_url, user.id) : null,
         draftPage.background_image_url !== nextPage.background_image_url
-          ? getUserImagePath(page.background_image_url, user.id)
+          ? getUserMediaPath(page.background_image_url, user.id)
           : null,
+        draftPage.music_url !== nextPage.music_url ? getUserMediaPath(page.music_url, user.id) : null,
       ].filter((path): path is string => path !== null);
       const cleanupResults = await Promise.allSettled(
-        oldImagePaths.map((path) => removeUserImage(path, user.id)),
+        oldImagePaths.map((path) => removeUserMedia(path, user.id)),
       );
       if (cleanupResults.some((result) => result.status === 'rejected')) {
-        setSaveNotice("Personnalisations enregistrées. Une ancienne image n'a pas pu être supprimée.");
+        setSaveNotice("Personnalisations enregistrées. Un ancien média n'a pas pu être supprimé.");
       }
     } catch (caught) {
       const cleanupResults = await Promise.allSettled(
-        [uploadedAvatar?.path, uploadedBackground?.path]
+        [uploadedAvatar?.path, uploadedBackground?.path, uploadedMusic?.path]
           .filter((path): path is string => path !== undefined)
-          .map((path) => removeUserImage(path, user.id)),
+          .map((path) => removeUserMedia(path, user.id)),
       );
       const cleanupWarning = cleanupResults.some((result) => result.status === 'rejected')
-        ? " Une image envoyée n'a pas pu être nettoyée."
+        ? " Un média envoyé n'a pas pu être nettoyé."
         : '';
       const rollbackWarning = pageUpdateAttempted
         ? " La sauvegarde de la page a échoué; vérifie son état avant de réessayer."
@@ -179,6 +204,11 @@ export const AppearanceEditor: React.FC = () => {
   const updateDraftPage = <Key extends keyof PageConfig>(key: Key, value: PageConfig[Key]) => {
     setDraftPage((current) => current ? { ...current, [key]: value } : current);
   };
+  const previewPage: PageConfig = {
+    ...draftPage,
+    music_url: musicPreview,
+    music_type: musicFile?.type ?? draftPage.music_type,
+  };
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-8 p-5 sm:p-8 lg:flex-row">
@@ -186,7 +216,7 @@ export const AppearanceEditor: React.FC = () => {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-300">Votre identité, vos règles</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white">Personnaliser ma page</h1>
-          <p className="mt-2 text-sm text-slate-400">Modifie ton profil, tes couleurs et tes images, puis enregistre en une fois.</p>
+          <p className="mt-2 text-sm text-slate-400">Modifie ton profil, ta carte, tes couleurs et tes médias, puis enregistre en une fois.</p>
         </div>
 
         {saveError && <div role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{saveError}</div>}
@@ -319,6 +349,76 @@ export const AppearanceEditor: React.FC = () => {
 
         <section className={cardClassName}>
           <div>
+            <h2 className="text-sm font-semibold text-white">Musique de profil</h2>
+            <p className="mt-1 text-xs text-slate-500">Ajoute un MP3 ou un MP4 avec son, que tes visiteurs pourront lancer.</p>
+          </div>
+          {musicPreview && (
+            <div className="rounded-xl border border-white/10 bg-slate-950/60 p-3">
+              {musicFile?.type === 'video/mp4' || (!musicFile && draftPage.music_type === 'video/mp4')
+                ? <video className="max-h-44 w-full rounded-lg" src={musicPreview} controls playsInline preload="metadata" aria-label="Aperçu de la musique MP4" />
+                : <audio className="w-full" src={musicPreview} controls preload="metadata" aria-label="Aperçu de la musique MP3" />}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="cursor-pointer rounded-lg border border-white/10 bg-white/[0.05] px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10">
+              {musicPreview ? 'Remplacer le média' : 'Ajouter une musique'}
+              <input
+                type="file"
+                accept=".mp3,.mp4,audio/mpeg,audio/mp4,video/mp4"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) {
+                    setMusicFile(file);
+                    setSaveError('');
+                    setSaveNotice('');
+                  }
+                  event.target.value = '';
+                }}
+              />
+            </label>
+            {musicPreview && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMusicFile(null);
+                  updateDraftPage('music_url', null);
+                  updateDraftPage('music_type', null);
+                }}
+                className="rounded-lg px-3 py-2 text-xs font-medium text-slate-400 transition hover:text-red-300"
+              >
+                Retirer la musique
+              </button>
+            )}
+            <span className="w-full text-xs text-slate-500">MP3 ou MP4 · 20 Mo maximum · démarrage manuel</span>
+          </div>
+        </section>
+
+        <section className={cardClassName}>
+          <div>
+            <h2 className="text-sm font-semibold text-white">Style de la carte de profil</h2>
+            <p className="mt-1 text-xs text-slate-500">12 ambiances pour ta carte centrale et tes liens.</p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {PROFILE_CARD_THEMES.map((theme) => (
+              <button
+                key={theme.id}
+                type="button"
+                onClick={() => updateDraftPage('card_theme', theme.id)}
+                aria-pressed={draftPage.card_theme === theme.id}
+                className={`profile-card-option profile-card--${theme.id} rounded-xl border p-3 text-left transition hover:-translate-y-0.5 ${
+                  draftPage.card_theme === theme.id ? 'ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-900' : ''
+                }`}
+              >
+                <span className="block text-xs font-bold text-white">{theme.name}</span>
+                <span className="mt-1 block text-[10px] leading-relaxed text-white/70">{theme.description}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className={cardClassName}>
+          <div>
             <h2 className="text-sm font-semibold text-white">Thèmes prédéfinis</h2>
             <p className="mt-1 text-xs text-slate-500">Choisis une base, puis ajuste les couleurs ci-dessous.</p>
           </div>
@@ -400,7 +500,7 @@ export const AppearanceEditor: React.FC = () => {
 
       <aside className="mx-auto w-full shrink-0 lg:sticky lg:top-6 lg:mx-0 lg:w-[320px] lg:self-start">
         <p className="mb-3 text-center text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Aperçu en direct</p>
-        <LivePreview profile={draftProfile} page={draftPage} links={links} />
+        <LivePreview profile={draftProfile} page={previewPage} links={links} />
       </aside>
     </div>
   );

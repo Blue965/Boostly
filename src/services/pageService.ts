@@ -63,7 +63,7 @@ export async function updateProfile(
 
 export async function updatePage(
   pageId: string,
-  updates: Partial<Pick<PageConfig, 'title' | 'theme' | 'background_color' | 'background_image_url' | 'accent_color' | 'button_style' | 'font_family' | 'hide_branding'>>,
+  updates: Partial<Pick<PageConfig, 'title' | 'theme' | 'background_color' | 'background_image_url' | 'card_theme' | 'accent_color' | 'button_style' | 'font_family' | 'music_url' | 'music_type' | 'hide_branding'>>,
 ): Promise<void> {
   const { error } = await supabase.from('pages').update(updates).eq('id', pageId);
   if (error) throw error;
@@ -71,40 +71,58 @@ export async function updatePage(
 
 const MEDIA_BUCKET = 'boostly-media';
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024;
+const MAX_MUSIC_SIZE = 20 * 1024 * 1024;
 const IMAGE_EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
   'image/webp': 'webp',
 };
+const MUSIC_EXTENSIONS: Record<string, string> = {
+  'audio/mpeg': 'mp3',
+  'audio/mp4': 'mp4',
+  'video/mp4': 'mp4',
+};
 
-export interface UploadedUserImage {
+export interface UploadedUserMedia {
   path: string;
   publicUrl: string;
+  contentType: string;
 }
 
-export async function uploadUserImage(
+export async function uploadUserMedia(
   userId: string,
-  kind: 'avatar' | 'background',
+  kind: 'avatar' | 'background' | 'music',
   file: File,
-): Promise<UploadedUserImage> {
-  const extension = IMAGE_EXTENSIONS[file.type];
-  if (!extension) throw new Error('Choisissez une image PNG, JPG ou WebP.');
-  if (file.size > MAX_IMAGE_SIZE) throw new Error("L'image doit faire 8 Mo maximum.");
-  if (file.size === 0) throw new Error("Le fichier image est vide.");
+): Promise<UploadedUserMedia> {
+  const extensions = kind === 'music' ? MUSIC_EXTENSIONS : IMAGE_EXTENSIONS;
+  const extension = extensions[file.type];
+  if (!extension) {
+    throw new Error(kind === 'music'
+      ? 'Choisissez un fichier MP3 ou MP4.'
+      : 'Choisissez une image PNG, JPG ou WebP.');
+  }
+  const sizeLimit = kind === 'music' ? MAX_MUSIC_SIZE : MAX_IMAGE_SIZE;
+  if (file.size > sizeLimit) {
+    throw new Error(kind === 'music'
+      ? 'Le fichier audio/vidéo doit faire 20 Mo maximum.'
+      : "L'image doit faire 8 Mo maximum.");
+  }
+  if (file.size === 0) throw new Error("Le fichier sélectionné est vide.");
 
+  const contentType = file.type === 'audio/mp4' ? 'audio/mp4' : file.type;
   const path = `${userId}/${kind}/${crypto.randomUUID()}.${extension}`;
   const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(path, file, {
     cacheControl: '3600',
-    contentType: file.type,
+    contentType,
     upsert: false,
   });
   if (error) throw error;
 
   const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
-  return { path, publicUrl: data.publicUrl };
+  return { path, publicUrl: data.publicUrl, contentType };
 }
 
-export async function removeUserImage(path: string, userId: string): Promise<void> {
+export async function removeUserMedia(path: string, userId: string): Promise<void> {
   if (path.split('/')[0] !== userId) {
     throw new Error("Impossible de supprimer une image qui n'appartient pas à ce compte.");
   }
@@ -112,7 +130,7 @@ export async function removeUserImage(path: string, userId: string): Promise<voi
   if (error) throw error;
 }
 
-export function getUserImagePath(publicUrl: string | null, userId: string): string | null {
+export function getUserMediaPath(publicUrl: string | null, userId: string): string | null {
   if (!publicUrl) return null;
   try {
     const url = new URL(publicUrl);
