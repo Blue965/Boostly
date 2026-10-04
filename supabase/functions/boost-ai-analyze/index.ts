@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
-const xkiroModel = "mistralai/ministral-14b";
+const xkiroModel = "qwen/qwen3.8-max:free";
 
 interface Recommendation {
   type: string;
