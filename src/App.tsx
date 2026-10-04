@@ -22,9 +22,9 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
+    <div className="min-h-screen bg-[#070b16] flex text-white">
       <Sidebar />
-      <main className="flex-1">{children}</main>
+      <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
     </div>
   );
 };
