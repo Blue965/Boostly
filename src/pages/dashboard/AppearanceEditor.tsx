@@ -2,24 +2,75 @@ import React, { useState } from 'react';
 import { useUserPage } from '../../hooks/useUserPage';
 import { LivePreview } from '../../components/preview/LivePreview';
 import { PRESET_THEMES } from '../../lib/constants';
-import { supabase } from '../../lib/supabase';
+import { updatePage } from '../../services/pageService';
+import { PageConfig } from '../../types/database.types';
 
 export const AppearanceEditor: React.FC = () => {
-  const { profile, page, links, setPage } = useUserPage();
+  const { profile, page, links, loading, error, refresh, setPage } = useUserPage();
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
-  if (!page) return <div className="p-6 text-slate-400">Chargement...</div>;
+  const saveChanges = async (updates: Partial<Pick<PageConfig, 'theme' | 'background_color' | 'accent_color' | 'button_style'>>) => {
+    if (!page) return;
 
-  const handleApplyPreset = async (preset: typeof PRESET_THEMES[0]) => {
-    const updated = { ...page, background_color: preset.bg, accent_color: preset.accent, theme: preset.id };
-    setPage(updated);
-    await supabase.from('pages').update({ background_color: preset.bg, accent_color: preset.accent, theme: preset.id }).eq('id', page.id);
+    const previousPage = page;
+    const updatedPage = { ...page, ...updates };
+    setPage(updatedPage);
+    setSaving(true);
+    setSaveError('');
+
+    try {
+      await updatePage(page.id, updates);
+    } catch (caught) {
+      setPage(previousPage);
+      setSaveError(caught instanceof Error ? caught.message : "Impossible d'enregistrer l'apparence.");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleStyleChange = async (key: string, value: any) => {
-    const updated = { ...page, [key]: value };
-    setPage(updated);
-    await supabase.from('pages').update({ [key]: value }).eq('id', page.id);
+  if (loading) return <div className="p-6 text-slate-400">Chargement de votre apparence...</div>;
+
+  if (error) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto space-y-4">
+        <h1 className="text-2xl font-bold text-white">Apparence</h1>
+        <div role="alert" className="p-4 bg-red-500/10 border border-red-500/20 text-red-300 text-sm rounded-xl">
+          Impossible de charger votre page : {error}
+        </div>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+        >
+          Réessayer
+        </button>
+      </div>
+    );
+  }
+
+  if (!page) {
+    return (
+      <div className="p-6 max-w-3xl mx-auto space-y-4">
+        <h1 className="text-2xl font-bold text-white">Apparence</h1>
+        <p className="text-sm text-slate-400">Aucune page n’est associée à ce compte. Actualise les données pour réessayer.</p>
+        <button
+          type="button"
+          onClick={() => void refresh()}
+          className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+        >
+          Actualiser
+        </button>
+      </div>
+    );
+  }
+
+  const handleApplyPreset = (preset: typeof PRESET_THEMES[number]) => {
+    void saveChanges({ background_color: preset.bg, accent_color: preset.accent, theme: preset.id });
+  };
+
+  const handleStyleChange = (key: 'background_color' | 'accent_color' | 'button_style', value: string) => {
+    void saveChanges({ [key]: value } as Pick<PageConfig, typeof key>);
   };
 
   return (
@@ -29,6 +80,13 @@ export const AppearanceEditor: React.FC = () => {
           <h1 className="text-2xl font-bold text-white">Apparence</h1>
           <p className="text-sm text-slate-400">Personnalisez le design et les couleurs de votre page publique.</p>
         </div>
+
+        {saveError && (
+          <div role="alert" className="p-3 bg-red-500/10 border border-red-500/20 text-red-300 text-xs rounded-lg">
+            Échec de l’enregistrement : {saveError}
+          </div>
+        )}
+        {saving && <p role="status" className="text-xs text-slate-500">Enregistrement des changements...</p>}
 
         {/* Thèmes prédéfinis */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Profile, PageConfig, LinkItem, Subscription } from '../types/database.types';
 import { useAuth } from '../context/AuthContext';
+import { getUserPageData } from '../services/pageService';
 
 export function useUserPage() {
   const { user } = useAuth();
@@ -10,32 +10,51 @@ export function useUserPage() {
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
 
-  const fetchUserData = async () => {
-    if (!user) { setLoading(false); return; }
+  const fetchUserData = useCallback(async () => {
+    const currentRequestId = ++requestId.current;
 
-    const [profRes, pageRes, subRes] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('pages').select('*').eq('user_id', user.id).single(),
-      supabase.from('subscriptions').select('*').eq('user_id', user.id).single()
-    ]);
-
-    if (profRes.data) setProfile(profRes.data);
-    if (pageRes.data) {
-      setPage(pageRes.data);
-      const { data: linksData } = await supabase
-        .from('links')
-        .select('*')
-        .eq('page_id', pageRes.data.id)
-        .order('position', { ascending: true });
-      setLinks(linksData || []);
+    if (!user) {
+      setProfile(null);
+      setPage(null);
+      setLinks([]);
+      setSubscription(null);
+      setError(null);
+      setLoading(false);
+      return;
     }
-    if (subRes.data) setSubscription(subRes.data);
 
-    setLoading(false);
-  };
+    setLoading(true);
+    setError(null);
 
-  useEffect(() => { fetchUserData(); }, [user]);
+    try {
+      const data = await getUserPageData(user.id);
+      if (currentRequestId !== requestId.current) return;
 
-  return { profile, page, links, subscription, loading, refresh: fetchUserData, setLinks, setPage, setProfile };
+      setProfile(data.profile);
+      setPage(data.page);
+      setLinks(data.links);
+      setSubscription(data.subscription);
+
+      if (!data.profile) {
+        setError('Le profil Boostly est introuvable. Vérifie que la migration Supabase a été exécutée après la configuration du projet.');
+      }
+    } catch (caught) {
+      if (currentRequestId !== requestId.current) return;
+      setError(caught instanceof Error ? caught.message : 'Impossible de charger les données du compte.');
+    } finally {
+      if (currentRequestId === requestId.current) setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void fetchUserData();
+    return () => {
+      requestId.current += 1;
+    };
+  }, [fetchUserData]);
+
+  return { profile, page, links, subscription, loading, error, refresh: fetchUserData, setLinks, setPage, setProfile };
 }

@@ -19,12 +19,26 @@ export async function getUserPageData(userId: string): Promise<UserPageData> {
   if (pageResult.error) throw pageResult.error;
   if (subscriptionResult.error) throw subscriptionResult.error;
 
+  const profile = profileResult.data;
+  let page = pageResult.data;
+
+  if (profile && !page) {
+    const { data, error } = await supabase
+      .from('pages')
+      .insert({ user_id: userId, title: profile.display_name || profile.username })
+      .select()
+      .single();
+
+    if (error) throw error;
+    page = data;
+  }
+
   let links: LinkItem[] = [];
-  if (pageResult.data) {
+  if (page) {
     const linksResult = await supabase
       .from('links')
       .select('*')
-      .eq('page_id', pageResult.data.id)
+      .eq('page_id', page.id)
       .order('position', { ascending: true });
 
     if (linksResult.error) throw linksResult.error;
@@ -32,8 +46,8 @@ export async function getUserPageData(userId: string): Promise<UserPageData> {
   }
 
   return {
-    profile: profileResult.data,
-    page: pageResult.data,
+    profile,
+    page,
     links,
     subscription: subscriptionResult.data,
   };
