@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import boostlyLogo from '../../assets/Boostly.png';
 
 interface BrandLogoProps {
   size?: 'small' | 'medium';
@@ -28,7 +29,7 @@ const BrandMark: React.FC<{ size: 'small' | 'medium' }> = ({ size }) => {
 
   return (
     <img
-      src="/Boostly.png"
+      src={boostlyLogo}
       alt=""
       aria-hidden="true"
       className={`${sizeClass} rounded-xl object-contain`}
