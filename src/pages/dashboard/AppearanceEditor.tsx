@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useUserPage } from '../../hooks/useUserPage';
 import { PRESET_THEMES, PROFILE_CARD_THEMES } from '../../lib/constants';
+import { getMusicEmbed } from '../../lib/musicEmbed';
 import {
   getUserMediaPath,
   removeUserMedia,
@@ -80,6 +81,11 @@ export const AppearanceEditor: React.FC = () => {
   const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!profile || !page || !draftProfile || !draftPage || !user) return;
+    if (draftPage.music_embed_url && !getMusicEmbed(draftPage.music_embed_url)) {
+      setSaveError('Colle un lien Spotify, YouTube, SoundCloud ou Apple Music valide.');
+      setSaveNotice('');
+      return;
+    }
 
     setSaving(true);
     setSaveError('');
@@ -101,8 +107,9 @@ export const AppearanceEditor: React.FC = () => {
       const nextPage = {
         ...draftPage,
         background_image_url: uploadedBackground?.publicUrl ?? draftPage.background_image_url,
-        music_url: uploadedMusic?.publicUrl ?? draftPage.music_url,
-        music_type: uploadedMusic?.contentType ?? draftPage.music_type,
+        music_url: uploadedMusic?.publicUrl ?? (draftPage.music_embed_url ? null : draftPage.music_url),
+        music_type: uploadedMusic?.contentType ?? (draftPage.music_embed_url ? null : draftPage.music_type),
+        music_embed_url: uploadedMusic ? null : draftPage.music_embed_url?.trim() || null,
       };
 
       pageUpdateAttempted = true;
@@ -117,6 +124,7 @@ export const AppearanceEditor: React.FC = () => {
         font_family: nextPage.font_family,
         music_url: nextPage.music_url,
         music_type: nextPage.music_type,
+        music_embed_url: nextPage.music_embed_url,
       });
       try {
         await updateProfile(profile.id, {
@@ -136,6 +144,7 @@ export const AppearanceEditor: React.FC = () => {
           font_family: page.font_family,
           music_url: page.music_url,
           music_type: page.music_type,
+          music_embed_url: page.music_embed_url,
         });
         pageUpdateAttempted = false;
         throw profileError;
@@ -208,6 +217,7 @@ export const AppearanceEditor: React.FC = () => {
     ...draftPage,
     music_url: musicPreview,
     music_type: musicFile?.type ?? draftPage.music_type,
+    music_embed_url: musicFile ? null : draftPage.music_embed_url,
   };
 
   return (
@@ -350,7 +360,7 @@ export const AppearanceEditor: React.FC = () => {
         <section className={cardClassName}>
           <div>
             <h2 className="text-sm font-semibold text-white">Musique de profil</h2>
-            <p className="mt-1 text-xs text-slate-500">Ajoute un MP3 ou un MP4 avec son, que tes visiteurs pourront lancer.</p>
+            <p className="mt-1 text-xs text-slate-500">Importe un MP3/MP4 ou colle un lien Spotify, YouTube, SoundCloud ou Apple Music.</p>
           </div>
           {musicPreview && (
             <div className="rounded-xl border border-white/10 bg-slate-950/60 p-3">
@@ -377,21 +387,45 @@ export const AppearanceEditor: React.FC = () => {
                 }}
               />
             </label>
-            {musicPreview && (
+            {(musicPreview || draftPage.music_embed_url) && (
               <button
                 type="button"
                 onClick={() => {
                   setMusicFile(null);
                   updateDraftPage('music_url', null);
                   updateDraftPage('music_type', null);
+                  updateDraftPage('music_embed_url', null);
                 }}
                 className="rounded-lg px-3 py-2 text-xs font-medium text-slate-400 transition hover:text-red-300"
               >
-                Retirer la musique
+                Retirer le média
               </button>
             )}
             <span className="w-full text-xs text-slate-500">MP3 ou MP4 · 20 Mo maximum · démarrage manuel</span>
           </div>
+          <label className="block space-y-1.5 text-xs text-slate-400">
+            Ou colle le lien d’une musique / vidéo
+            <input
+              className={inputClassName}
+              type="url"
+              inputMode="url"
+              value={draftPage.music_embed_url ?? ''}
+              onChange={(event) => {
+                const value = event.target.value;
+                setMusicFile(null);
+                updateDraftPage('music_embed_url', value.trim() ? value : null);
+                setSaveError('');
+                setSaveNotice('');
+              }}
+              placeholder="https://open.spotify.com/track/…"
+              maxLength={2048}
+            />
+            <span className="block text-slate-500">
+              {draftPage.music_embed_url
+                ? getMusicEmbed(draftPage.music_embed_url)?.provider ?? 'Lien non reconnu — utilise Spotify, YouTube, SoundCloud ou Apple Music.'
+                : 'Les lecteurs s’affichent dans la carte et sont contrôlés par le visiteur.'}
+            </span>
+          </label>
         </section>
 
         <section className={cardClassName}>

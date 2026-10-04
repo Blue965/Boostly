@@ -63,7 +63,7 @@ export async function updateProfile(
 
 export async function updatePage(
   pageId: string,
-  updates: Partial<Pick<PageConfig, 'title' | 'theme' | 'background_color' | 'background_image_url' | 'card_theme' | 'accent_color' | 'button_style' | 'font_family' | 'music_url' | 'music_type' | 'hide_branding'>>,
+  updates: Partial<Pick<PageConfig, 'title' | 'theme' | 'background_color' | 'background_image_url' | 'card_theme' | 'accent_color' | 'button_style' | 'font_family' | 'music_url' | 'music_type' | 'music_embed_url' | 'hide_branding'>>,
 ): Promise<void> {
   const { error } = await supabase.from('pages').update(updates).eq('id', pageId);
   if (error) throw error;

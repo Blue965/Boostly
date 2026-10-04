@@ -24,6 +24,7 @@ export interface PageConfig {
   font_family: string;
   music_url: string | null;
   music_type: string | null;
+  music_embed_url: string | null;
   hide_branding: boolean;
   created_at: string;
   updated_at: string;

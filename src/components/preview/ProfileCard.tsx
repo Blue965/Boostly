@@ -1,5 +1,6 @@
 import React from 'react';
 import { LinkItem, PageConfig, Profile } from '../../types/database.types';
+import { getMusicEmbed } from '../../lib/musicEmbed';
 
 interface ProfileCardProps {
   profile: Profile;
@@ -21,6 +22,7 @@ function getButtonRadius(style: PageConfig['button_style']): string {
 export const ProfileCard: React.FC<ProfileCardProps> = ({ profile, page, links, preview = false, onLinkClick }) => {
   const activeLinks = links.filter((link) => link.is_active);
   const title = page.title || profile.display_name || `@${profile.username}`;
+  const musicEmbed = getMusicEmbed(page.music_embed_url);
 
   return (
     <section className={`profile-card profile-card--${page.card_theme || 'glass'} w-full max-w-md`}>
@@ -33,13 +35,24 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({ profile, page, links, 
 
         <h1 className="profile-card__title text-2xl font-bold tracking-tight text-white">{title}</h1>
         {profile.bio && <p className="mt-2 max-w-sm whitespace-pre-wrap text-sm leading-relaxed text-slate-200/90">{profile.bio}</p>}
-        {page.music_url && (
+        {musicEmbed ? (
+          <div className="mt-6 w-full overflow-hidden rounded-xl border border-white/15 bg-black/20">
+            <iframe
+              className={`block w-full ${musicEmbed.aspectRatio === 'video' ? 'aspect-video' : 'h-[152px]'}`}
+              src={musicEmbed.src}
+              title={`${musicEmbed.provider} — ${title}`}
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              referrerPolicy="strict-origin-when-cross-origin"
+              loading="lazy"
+            />
+          </div>
+        ) : page.music_url ? (
           <div className="mt-6 w-full">
             {page.music_type === 'video/mp4'
               ? <video className="w-full rounded-xl" src={page.music_url} controls playsInline preload="metadata" aria-label={`Média musical de ${title}`} />
               : <audio className="w-full" src={page.music_url} controls preload="metadata" aria-label={`Musique de ${title}`} />}
           </div>
-        )}
+        ) : null}
 
         <div className="mt-7 w-full space-y-3">
           {activeLinks.length === 0 ? (
