@@ -44,13 +44,22 @@ export const PublicPage: React.FC = () => {
   if (!profile || !page) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Page introuvable.</div>;
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-between p-6" style={{ backgroundColor: page.background_color, fontFamily: page.font_family }}>
+    <div
+      className="min-h-screen flex flex-col items-center justify-between p-6 bg-cover bg-center bg-fixed"
+      style={{
+        backgroundColor: page.background_color,
+        backgroundImage: page.background_image_url
+          ? `linear-gradient(rgba(2, 6, 23, 0.42), rgba(2, 6, 23, 0.62)), url("${page.background_image_url}")`
+          : undefined,
+        fontFamily: page.font_family,
+      }}
+    >
       <div className="w-full max-w-md flex flex-col items-center space-y-6 pt-8">
         <div className="w-24 h-24 rounded-full bg-slate-800 border-2 border-white/20 flex items-center justify-center text-3xl font-bold text-white overflow-hidden">
           {profile.avatar_url ? <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" /> : (profile.display_name || profile.username).charAt(0).toUpperCase()}
         </div>
         <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-white">{profile.display_name || `@${profile.username}`}</h1>
+          <h1 className="text-xl font-bold text-white">{page.title || profile.display_name || `@${profile.username}`}</h1>
           {profile.bio && <p className="text-sm text-slate-300 max-w-sm">{profile.bio}</p>}
         </div>
 

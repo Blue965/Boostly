@@ -11,20 +11,29 @@ export const LivePreview: React.FC<LivePreviewProps> = ({ profile, page, links }
   if (!page || !profile) return null;
 
   return (
-    <div className="w-[320px] h-[640px] bg-slate-950 border-[8px] border-slate-800 rounded-[40px] shadow-2xl p-4 flex flex-col justify-between overflow-y-auto relative sticky top-6">
+    <div
+      className="w-[320px] h-[640px] border-[8px] border-slate-800 rounded-[40px] shadow-2xl p-4 flex flex-col justify-between overflow-y-auto relative sticky top-6 bg-cover bg-center"
+      style={{
+        backgroundColor: page.background_color,
+        backgroundImage: page.background_image_url
+          ? `linear-gradient(rgba(2, 6, 23, 0.42), rgba(2, 6, 23, 0.62)), url("${page.background_image_url}")`
+          : undefined,
+        fontFamily: page.font_family,
+      }}
+    >
       <div className="flex flex-col items-center space-y-4 pt-4">
         {/* Avatar */}
         <div className="w-20 h-20 rounded-full bg-slate-800 border-2 border-white/20 flex items-center justify-center text-xl font-bold text-white overflow-hidden">
           {profile.avatar_url ? (
-            <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+            <img src={profile.avatar_url} alt="Photo de profil" className="w-full h-full object-cover" />
           ) : (
             (profile.display_name || profile.username || 'U').charAt(0).toUpperCase()
           )}
         </div>
 
         {/* Title/Bio */}
-        <div className="text-center">
-          <h3 className="text-base font-bold text-white">{profile.display_name || `@${profile.username}`}</h3>
+        <div className="text-center rounded-2xl bg-black/20 px-3 py-2 backdrop-blur-sm">
+          <h3 className="text-base font-bold text-white">{page.title || profile.display_name || `@${profile.username}`}</h3>
           {profile.bio && <p className="text-xs text-slate-400 mt-1 max-w-[240px]">{profile.bio}</p>}
         </div>
 

@@ -17,6 +17,7 @@ export interface PageConfig {
   title: string | null;
   theme: string;
   background_color: string;
+  background_image_url: string | null;
   accent_color: string;
   button_style: 'rounded' | 'pill' | 'square' | 'outline';
   font_family: string;
