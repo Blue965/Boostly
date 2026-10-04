@@ -1,6 +1,3 @@
--- EXTENSIONS
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- TYPES ENUM
 CREATE TYPE subscription_plan AS ENUM ('free', 'pro');
 CREATE TYPE subscription_status AS ENUM ('active', 'past_due', 'canceled', 'incomplete', 'trialing');
@@ -19,7 +16,7 @@ CREATE TABLE public.profiles (
 
 -- TABLE PAGES
 CREATE TABLE public.pages (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID UNIQUE NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     title TEXT,
     theme TEXT DEFAULT 'clean' NOT NULL,
@@ -34,7 +31,7 @@ CREATE TABLE public.pages (
 
 -- TABLE LINKS
 CREATE TABLE public.links (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     page_id UUID NOT NULL REFERENCES public.pages(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     url TEXT NOT NULL,
@@ -49,7 +46,7 @@ CREATE TABLE public.links (
 
 -- TABLE PAGE VIEWS
 CREATE TABLE public.page_views (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     page_id UUID NOT NULL REFERENCES public.pages(id) ON DELETE CASCADE,
     referrer TEXT,
     user_agent TEXT,
@@ -58,7 +55,7 @@ CREATE TABLE public.page_views (
 
 -- TABLE LINK CLICKS
 CREATE TABLE public.link_clicks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     page_id UUID NOT NULL REFERENCES public.pages(id) ON DELETE CASCADE,
     link_id UUID NOT NULL REFERENCES public.links(id) ON DELETE CASCADE,
     referrer TEXT,
@@ -67,7 +64,7 @@ CREATE TABLE public.link_clicks (
 
 -- TABLE SUBSCRIPTIONS
 CREATE TABLE public.subscriptions (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID UNIQUE NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
     plan subscription_plan DEFAULT 'free' NOT NULL,
     status subscription_status DEFAULT 'active' NOT NULL,
@@ -121,17 +118,40 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     clean_username TEXT;
+    user_label TEXT;
 BEGIN
-    clean_username := LOWER(SPLIT_PART(NEW.email, '@', 1));
+    user_label := COALESCE(
+        NULLIF(NEW.raw_user_meta_data->>'user_name', ''),
+        NULLIF(NEW.raw_user_meta_data->>'full_name', ''),
+        NULLIF(NEW.raw_user_meta_data->>'name', ''),
+        NULLIF(SPLIT_PART(NEW.email, '@', 1), ''),
+        'user'
+    );
+    clean_username := LOWER(user_label);
     clean_username := REGEXP_REPLACE(clean_username, '[^a-z0-9_-]', '', 'g');
-    IF LENGTH(clean_username) < 3 THEN clean_username := clean_username || '_usr'; END IF;
-    IF EXISTS (SELECT 1 FROM public.profiles WHERE username = clean_username) THEN
-        clean_username := clean_username || '_' || SUBSTRING(MD5(RANDOM()::text) FROM 1 FOR 4);
+    IF LENGTH(clean_username) < 3 THEN
+        clean_username := 'user';
     END IF;
+    clean_username := LEFT(clean_username, 17) || '_' || LEFT(REPLACE(NEW.id::text, '-', ''), 12);
 
-    INSERT INTO public.profiles (id, username, display_name) VALUES (NEW.id, clean_username, SPLIT_PART(NEW.email, '@', 1));
-    INSERT INTO public.pages (user_id, title) VALUES (NEW.id, SPLIT_PART(NEW.email, '@', 1));
-    INSERT INTO public.subscriptions (user_id, plan, status) VALUES (NEW.id, 'free', 'active');
+    INSERT INTO public.profiles (id, username, display_name)
+    VALUES (
+        NEW.id,
+        clean_username,
+        COALESCE(
+            NULLIF(NEW.raw_user_meta_data->>'full_name', ''),
+            NULLIF(NEW.raw_user_meta_data->>'name', ''),
+            NULLIF(SPLIT_PART(NEW.email, '@', 1), ''),
+            clean_username
+        )
+    )
+    ON CONFLICT (id) DO NOTHING;
+    INSERT INTO public.pages (user_id, title)
+    SELECT NEW.id, display_name FROM public.profiles WHERE id = NEW.id
+    ON CONFLICT (user_id) DO NOTHING;
+    INSERT INTO public.subscriptions (user_id, plan, status)
+    VALUES (NEW.id, 'free', 'active')
+    ON CONFLICT (user_id) DO NOTHING;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -139,3 +159,45 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Create the app records for users who signed up before this schema was installed.
+INSERT INTO public.profiles (id, username, display_name)
+SELECT
+    users.id,
+    LEFT(cleaned.username, 17) || '_' || LEFT(REPLACE(users.id::text, '-', ''), 12),
+    COALESCE(
+        NULLIF(users.raw_user_meta_data->>'full_name', ''),
+        NULLIF(users.raw_user_meta_data->>'name', ''),
+        NULLIF(SPLIT_PART(users.email, '@', 1), ''),
+        LEFT(cleaned.username, 17) || '_' || LEFT(REPLACE(users.id::text, '-', ''), 12)
+    )
+FROM auth.users AS users
+CROSS JOIN LATERAL (
+    SELECT REGEXP_REPLACE(
+        LOWER(COALESCE(
+            NULLIF(users.raw_user_meta_data->>'user_name', ''),
+            NULLIF(users.raw_user_meta_data->>'full_name', ''),
+            NULLIF(users.raw_user_meta_data->>'name', ''),
+            NULLIF(SPLIT_PART(users.email, '@', 1), ''),
+            'user'
+        )),
+        '[^a-z0-9_-]',
+        '',
+        'g'
+    ) AS username
+) AS cleaned
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.pages (user_id, title)
+SELECT profiles.id, COALESCE(profiles.display_name, profiles.username)
+FROM public.profiles
+LEFT JOIN public.pages ON pages.user_id = profiles.id
+WHERE pages.user_id IS NULL
+ON CONFLICT (user_id) DO NOTHING;
+
+INSERT INTO public.subscriptions (user_id, plan, status)
+SELECT profiles.id, 'free', 'active'
+FROM public.profiles
+LEFT JOIN public.subscriptions ON subscriptions.user_id = profiles.id
+WHERE subscriptions.user_id IS NULL
+ON CONFLICT (user_id) DO NOTHING;
