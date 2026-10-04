@@ -1,3 +1,4 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 export interface AIRecommendation {
@@ -13,6 +14,20 @@ interface AnalyzeResponse {
 
 export async function analyzePagePerformance(): Promise<AnalyzeResponse> {
   const { data, error } = await supabase.functions.invoke<AnalyzeResponse>('boost-ai-analyze');
+  if (error instanceof FunctionsHttpError && error.context instanceof Response) {
+    const response = error.context;
+    let body: unknown;
+    try {
+      body = await response.clone().json();
+    } catch {
+      body = null;
+    }
+
+    if (body && typeof body === 'object' && 'error' in body && typeof body.error === 'string') {
+      throw new Error(body.error);
+    }
+    throw new Error(`La fonction Boost AI a renvoyé une erreur HTTP ${response.status}. Consulte les logs Supabase pour le détail.`);
+  }
   if (error) throw error;
   if (!data || !Array.isArray(data.recommendations)) {
     throw new Error("La réponse du service d'analyse est invalide.");
