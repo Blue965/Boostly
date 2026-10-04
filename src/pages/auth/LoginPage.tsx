@@ -7,7 +7,7 @@ export const LoginPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
+  const [discordLoading, setDiscordLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -24,12 +24,12 @@ export const LoginPage: React.FC = () => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setGoogleLoading(true);
+  const handleDiscordLogin = async () => {
+    setDiscordLoading(true);
     setError('');
 
     const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
+      provider: 'discord',
       options: {
         redirectTo: `${window.location.origin}/dashboard`,
       },
@@ -37,7 +37,7 @@ export const LoginPage: React.FC = () => {
 
     if (error) {
       setError(error.message);
-      setGoogleLoading(false);
+      setDiscordLoading(false);
     }
   };
 
@@ -77,7 +77,7 @@ export const LoginPage: React.FC = () => {
           </div>
           <button
             type="submit"
-            disabled={loading || googleLoading}
+            disabled={loading || discordLoading}
             className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-2 rounded-lg text-sm transition disabled:opacity-50"
           >
             {loading ? 'Connexion...' : 'Se connecter'}
@@ -92,11 +92,14 @@ export const LoginPage: React.FC = () => {
 
         <button
           type="button"
-          onClick={handleGoogleLogin}
-          disabled={loading || googleLoading}
-          className="w-full bg-white hover:bg-slate-100 text-slate-900 font-medium py-2 rounded-lg text-sm transition disabled:opacity-50"
+          onClick={handleDiscordLogin}
+          disabled={loading || discordLoading}
+          className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium py-2 rounded-lg text-sm transition disabled:opacity-50 flex items-center justify-center gap-2"
         >
-          {googleLoading ? 'Redirection vers Google...' : 'Continuer avec Google'}
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="w-5 h-5 fill-current">
+            <path d="M19.73 5.14a19.2 19.2 0 0 0-4.72-1.47.07.07 0 0 0-.08.04c-.2.36-.42.84-.58 1.22a17.7 17.7 0 0 0-5.3 0c-.16-.39-.38-.86-.59-1.22a.08.08 0 0 0-.08-.04 19.15 19.15 0 0 0-4.72 1.47.07.07 0 0 0-.03.03C.62 9.56-.2 13.85.2 18.1c0 .02.01.04.03.05a19.36 19.36 0 0 0 5.8 2.93.08.08 0 0 0 .09-.03c.45-.62.85-1.28 1.2-1.98a.08.08 0 0 0-.04-.1 12.74 12.74 0 0 1-1.81-.86.08.08 0 0 1-.01-.13l.36-.28a.07.07 0 0 1 .08-.01c3.8 1.73 7.92 1.73 11.68 0a.07.07 0 0 1 .08.01l.36.28a.08.08 0 0 1-.01.13c-.58.34-1.19.63-1.82.86a.08.08 0 0 0-.04.1c.36.7.76 1.36 1.2 1.98a.08.08 0 0 0 .09.03 19.3 19.3 0 0 0 5.81-2.93.08.08 0 0 0 .03-.05c.48-4.91-.8-9.16-3.42-12.93a.06.06 0 0 0-.03-.03ZM8.02 15.65c-1.14 0-2.08-1.05-2.08-2.34s.92-2.34 2.08-2.34c1.17 0 2.1 1.06 2.08 2.34 0 1.29-.92 2.34-2.08 2.34Zm7.96 0c-1.14 0-2.08-1.05-2.08-2.34s.92-2.34 2.08-2.34c1.17 0 2.1 1.06 2.08 2.34 0 1.29-.91 2.34-2.08 2.34Z" />
+          </svg>
+          {discordLoading ? 'Redirection vers Discord...' : 'Continuer avec Discord'}
         </button>
 
         <div className="text-center text-xs text-slate-400">
