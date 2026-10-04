@@ -8,6 +8,7 @@ export const SignupPage: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -21,6 +22,23 @@ export const SignupPage: React.FC = () => {
       setLoading(false);
     } else {
       navigate('/dashboard');
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setGoogleLoading(true);
+    setError('');
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/dashboard`,
+      },
+    });
+
+    if (error) {
+      setError(error.message);
+      setGoogleLoading(false);
     }
   };
 
@@ -60,12 +78,33 @@ export const SignupPage: React.FC = () => {
           </div>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || googleLoading}
             className="w-full bg-blue-500 hover:bg-blue-400 text-white font-semibold py-3 rounded-xl text-sm transition disabled:opacity-50 shadow-lg shadow-blue-500/15"
           >
             {loading ? 'Création du compte...' : "S'inscrire"}
           </button>
         </form>
+
+        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.16em] text-slate-600">
+          <span className="h-px flex-1 bg-slate-800" />
+          <span>ou</span>
+          <span className="h-px flex-1 bg-slate-800" />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleSignup}
+          disabled={loading || googleLoading}
+          className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white py-3 text-sm font-semibold text-slate-800 transition hover:bg-slate-100 disabled:opacity-50"
+        >
+          <svg aria-hidden="true" viewBox="0 0 48 48" className="h-5 w-5">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z" />
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.73 7.18l7.64 5.92c4.46-4.11 7.13-10.16 7.13-17.57Z" />
+            <path fill="#FBBC05" d="M10.53 28.59A14.4 14.4 0 0 1 9.75 24c0-1.59.27-3.13.76-4.59l-7.98-6.19A23.9 23.9 0 0 0 0 24c0 3.87.93 7.53 2.56 10.78l7.97-6.19Z" />
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.78l-7.64-5.92c-2.13 1.43-4.86 2.28-8.27 2.28-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z" />
+          </svg>
+          {googleLoading ? 'Redirection vers Google...' : 'Continuer avec Google'}
+        </button>
 
         <div className="text-center text-xs text-slate-400">
           Déjà un compte ?{' '}
