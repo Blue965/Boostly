@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 const navItems = [
   { label: 'Vue d’ensemble', shortLabel: 'Accueil', path: '/dashboard', icon: 'home' },
   { label: 'Ma page', shortLabel: 'Ma page', path: '/dashboard/page', icon: 'page' },
+  { label: 'Mon QR code', shortLabel: 'QR code', path: '/dashboard/qr-code', icon: 'qr' },
   { label: 'Apparence', shortLabel: 'Style', path: '/dashboard/appearance', icon: 'style' },
   { label: 'Statistiques', shortLabel: 'Stats', path: '/dashboard/analytics', icon: 'stats' },
   { label: 'Boost AI', shortLabel: 'Boost AI', path: '/dashboard/boost-ai', icon: 'ai' },
@@ -32,6 +33,8 @@ function NavIcon({ name }: { name: string }) {
       return <svg {...common}><path d="M12 3a9 9 0 1 0 0 18h1.2a2 2 0 0 0 1.4-3.4 1.7 1.7 0 0 1 1.2-2.9H18a3 3 0 0 0 3-3c0-4.8-4-8.7-9-8.7Z" /><path d="M7.5 12h.01M10 7.5h.01M15 8h.01" /></svg>;
     case 'stats':
       return <svg {...common}><path d="M4 19V5M4 19h16" /><path d="m7 14 3-3 3 2 5-6" /><path d="M15 7h3v3" /></svg>;
+    case 'qr':
+      return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><path d="M14 14h3v3h-3zM20 14v2M17 20h4M20 18v3" /></svg>;
     default:
       return <svg {...common}><path d="m12 3 1.8 5.4L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.6L12 3Z" /><path d="m19 15 .7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7L19 15Z" /></svg>;
   }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useUserPage } from '../../hooks/useUserPage';
-import { PRESET_THEMES, PROFILE_CARD_THEMES } from '../../lib/constants';
+import { PAGE_TEMPLATES, PRESET_THEMES, PROFILE_CARD_THEMES } from '../../lib/constants';
 import { getMusicEmbed } from '../../lib/musicEmbed';
 import {
   getUserMediaPath,
@@ -231,6 +231,47 @@ export const AppearanceEditor: React.FC = () => {
 
         {saveError && <div role="alert" className="rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{saveError}</div>}
         {saveNotice && <div role="status" className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">{saveNotice}</div>}
+
+        <section className={cardClassName}>
+          <div>
+            <h2 className="text-sm font-semibold text-white">Modèles de page</h2>
+            <p className="mt-1 text-xs text-slate-500">Choisis un style adapté à ton activité. Ton profil, tes médias et tes liens restent inchangés.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {PAGE_TEMPLATES.map((template) => {
+              const selected = draftPage.card_theme === template.card
+                && draftPage.background_color === template.background
+                && draftPage.accent_color === template.accent
+                && draftPage.button_style === template.button
+                && draftPage.font_family === template.font;
+              return (
+                <button
+                  key={template.id}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() => {
+                    setDraftPage((current) => current ? {
+                      ...current,
+                      theme: template.theme,
+                      card_theme: template.card,
+                      background_color: template.background,
+                      accent_color: template.accent,
+                      button_style: template.button,
+                      font_family: template.font,
+                    } : current);
+                    setSaveError('');
+                    setSaveNotice('');
+                  }}
+                  className={`rounded-xl border p-4 text-left transition hover:border-blue-400/60 ${selected ? 'border-blue-400 ring-1 ring-blue-400/50' : 'border-slate-800'}`}
+                  style={{ background: `linear-gradient(135deg, ${template.background}, #0f172a)` }}
+                >
+                  <span className="block text-sm font-semibold text-white">{template.name}</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-slate-300">{template.description}</span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         <section className={cardClassName}>
           <div>

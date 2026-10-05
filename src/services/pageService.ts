@@ -146,7 +146,7 @@ export function getUserMediaPath(publicUrl: string | null, userId: string): stri
 
 export async function createLink(
   pageId: string,
-  link: Pick<LinkItem, 'title' | 'url'> & Partial<Pick<LinkItem, 'icon' | 'image_url' | 'position'>>,
+  link: Pick<LinkItem, 'title' | 'url'> & Partial<Pick<LinkItem, 'icon' | 'image_url' | 'position' | 'starts_at' | 'ends_at'>>,
 ): Promise<LinkItem> {
   const { data, error } = await supabase
     .from('links')
@@ -160,7 +160,7 @@ export async function createLink(
 
 export async function updateLink(
   linkId: string,
-  updates: Partial<Pick<LinkItem, 'title' | 'url' | 'icon' | 'image_url' | 'position' | 'is_active'>>,
+  updates: Partial<Pick<LinkItem, 'title' | 'url' | 'icon' | 'image_url' | 'position' | 'is_active' | 'starts_at' | 'ends_at'>>,
 ): Promise<void> {
   const { error } = await supabase.from('links').update(updates).eq('id', linkId);
   if (error) throw error;

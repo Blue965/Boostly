@@ -11,10 +11,13 @@ export const PublicPage: React.FC = () => {
   const [page, setPage] = useState<PageConfig | null>(null);
   const [links, setLinks] = useState<LinkItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     const load = async () => {
       if (!username) return;
+      setLoading(true);
+      setLoadError('');
       const { data: prof } = await supabase.from('profiles').select('*').eq('username', username.toLowerCase()).single();
       if (!prof) { setLoading(false); return; }
 
@@ -22,7 +25,20 @@ export const PublicPage: React.FC = () => {
       const { data: pageConfig } = await supabase.from('pages').select('*').eq('user_id', prof.id).single();
       if (pageConfig) {
         setPage(pageConfig);
-        const { data: linksData } = await supabase.from('links').select('*').eq('page_id', pageConfig.id).eq('is_active', true).order('position', { ascending: true });
+        const now = new Date().toISOString();
+        const { data: linksData, error: linksError } = await supabase
+          .from('links')
+          .select('*')
+          .eq('page_id', pageConfig.id)
+          .eq('is_active', true)
+          .or(`starts_at.is.null,starts_at.lte.${now}`)
+          .or(`ends_at.is.null,ends_at.gt.${now}`)
+          .order('position', { ascending: true });
+        if (linksError) {
+          setLoadError(linksError.message);
+          setLoading(false);
+          return;
+        }
         setLinks(linksData || []);
 
         // Log page view
@@ -42,6 +58,7 @@ export const PublicPage: React.FC = () => {
   };
 
   if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">Chargement...</div>;
+  if (loadError) return <div role="alert" className="min-h-screen bg-slate-950 flex items-center justify-center px-6 text-center text-sm text-red-300">Impossible de charger les liens de cette page : {loadError}</div>;
   if (!profile || !page) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-white">Page introuvable.</div>;
 
   return (

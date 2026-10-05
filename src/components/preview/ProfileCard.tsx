@@ -20,7 +20,12 @@ function getButtonRadius(style: PageConfig['button_style']): string {
 }
 
 export const ProfileCard: React.FC<ProfileCardProps> = ({ profile, page, links, preview = false, onLinkClick }) => {
-  const activeLinks = links.filter((link) => link.is_active);
+  const now = Date.now();
+  const activeLinks = links.filter((link) =>
+    link.is_active
+    && (!link.starts_at || new Date(link.starts_at).getTime() <= now)
+    && (!link.ends_at || new Date(link.ends_at).getTime() > now),
+  );
   const title = page.title || profile.display_name || `@${profile.username}`;
   const musicEmbed = getMusicEmbed(page.music_embed_url);
 

@@ -15,6 +15,7 @@ import { AppearanceEditor } from './pages/dashboard/AppearanceEditor';
 import { AnalyticsDashboard } from './pages/dashboard/AnalyticsDashboard';
 import { BoostAIPage } from './pages/dashboard/BoostAIPage';
 import { SubscriptionPage } from './pages/dashboard/SubscriptionPage';
+import { QrCodePage } from './pages/dashboard/QrCodePage';
 import { SupportChat } from './components/support/SupportChat';
 
 const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -50,6 +51,7 @@ export function App() {
                 <Routes>
                   <Route path="" element={<DashboardOverview />} />
                   <Route path="page" element={<PageEditor />} />
+                  <Route path="qr-code" element={<QrCodePage />} />
                   <Route path="appearance" element={<AppearanceEditor />} />
                   <Route path="analytics" element={<AnalyticsDashboard />} />
                   <Route path="boost-ai" element={<BoostAIPage />} />
