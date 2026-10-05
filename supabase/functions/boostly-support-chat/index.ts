@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
-const xkiroModel = "qwen/qwen3.8-max:free";
+const openRouterModel = "qwen/qwen3.8-27b:free";
 const maxRequestBytes = 20_000;
 
 interface ChatMessage {
@@ -51,9 +51,9 @@ serve(async (req) => {
   const authorization = req.headers.get("Authorization");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-  const xkiroApiKey = Deno.env.get("XKIRO_API_KEY");
+  const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!authorization?.startsWith("Bearer ")) return jsonResponse({ error: "Connecte-toi pour utiliser le support Boostly." }, 401);
-  if (!supabaseUrl || !supabaseAnonKey || !xkiroApiKey) {
+  if (!supabaseUrl || !supabaseAnonKey || !openRouterApiKey) {
     console.error("Support chat environment is missing required configuration");
     return jsonResponse({ error: "Le support IA est momentanément indisponible." }, 500);
   }
@@ -80,14 +80,16 @@ serve(async (req) => {
       return jsonResponse({ error: "La conversation est invalide. Réessaie avec un message plus court." }, 400);
     }
 
-    const completionResponse = await fetch("https://api.xkiro.com/v1/chat/completions", {
+    const completionResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${xkiroApiKey}`,
+        Authorization: `Bearer ${openRouterApiKey}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://boostly-profile.vercel.app",
+        "X-Title": "Boostly",
       },
       body: JSON.stringify({
-        model: xkiroModel,
+        model: openRouterModel,
         temperature: 0.4,
         max_tokens: 700,
         messages: [
@@ -103,17 +105,17 @@ serve(async (req) => {
     });
 
     if (!completionResponse.ok) {
-      console.error("Support chat Xkiro request failed", completionResponse.status);
+      console.error("Support chat OpenRouter request failed", completionResponse.status);
       return jsonResponse({ error: "Le support IA ne répond pas pour le moment. Réessaie dans un instant." }, 502);
     }
 
     const completion = await completionResponse.json();
     const reply = completion?.choices?.[0]?.message?.content;
     if (typeof reply !== "string" || !reply.trim()) {
-      console.error("Support chat Xkiro returned an unexpected response");
+      console.error("Support chat OpenRouter returned an unexpected response");
       return jsonResponse({ error: "Le support a renvoyé une réponse vide. Réessaie." }, 502);
     }
-    return jsonResponse({ reply: reply.trim().slice(0, 4000), model: xkiroModel });
+    return jsonResponse({ reply: reply.trim().slice(0, 4000), model: openRouterModel });
   } catch (error) {
     console.error("Support chat request failed", error instanceof Error ? error.message : "Unknown error");
     return jsonResponse({ error: "Impossible de joindre le support IA pour le moment." }, 502);

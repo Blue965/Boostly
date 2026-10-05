@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
-const xkiroModel = "qwen/qwen3.8-max:free";
+const openRouterModel = "qwen/qwen3.8-27b:free";
 
 interface Recommendation {
   type: string;
@@ -64,12 +64,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return jsonResponse({ error: "Méthode non autorisée." }, 405);
 
-  const xkiroApiKey = Deno.env.get("XKIRO_API_KEY");
+  const openRouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
   const authorization = req.headers.get("Authorization");
 
-  if (!xkiroApiKey) return jsonResponse({ error: "La clé Xkiro manque dans les secrets de la fonction Supabase." }, 500);
+  if (!openRouterApiKey) return jsonResponse({ error: "La clé OpenRouter manque dans les secrets des fonctions Supabase." }, 500);
   if (!supabaseUrl || !supabaseAnonKey) {
     return jsonResponse({ error: "La configuration Supabase de la fonction est incomplète." }, 500);
   }
@@ -145,14 +145,16 @@ serve(async (req) => {
       clicks: clickCounts.get(link.id) ?? 0,
     }));
 
-    const xkiroResponse = await fetch("https://api.xkiro.com/v1/chat/completions", {
+    const openRouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${xkiroApiKey}`,
+        Authorization: `Bearer ${openRouterApiKey}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://boostly-profile.vercel.app",
+        "X-Title": "Boostly",
       },
       body: JSON.stringify({
-        model: xkiroModel,
+        model: openRouterModel,
         temperature: 0.3,
         max_tokens: 1200,
         messages: [
@@ -183,33 +185,33 @@ serve(async (req) => {
       signal: AbortSignal.timeout(80_000),
     });
 
-    if (!xkiroResponse.ok) {
-      console.error("Xkiro request failed", xkiroResponse.status);
+    if (!openRouterResponse.ok) {
+      console.error("OpenRouter request failed", openRouterResponse.status);
       return jsonResponse(
-        { error: `Le service Xkiro a refusé l’analyse (HTTP ${xkiroResponse.status}). Vérifie la clé API et l’accès au modèle gratuit.` },
+        { error: `OpenRouter a refusé l’analyse (HTTP ${openRouterResponse.status}). Vérifie la clé API et l’accès au modèle gratuit.` },
         502,
       );
     }
 
-    const completion = await xkiroResponse.json();
+    const completion = await openRouterResponse.json();
     const content = completion?.choices?.[0]?.message?.content;
     if (typeof content !== "string") {
-      console.error("Xkiro returned an unexpected completion shape");
-      return jsonResponse({ error: "Xkiro a renvoyé une réponse inattendue." }, 502);
+      console.error("OpenRouter returned an unexpected completion shape");
+      return jsonResponse({ error: "OpenRouter a renvoyé une réponse inattendue." }, 502);
     }
 
     let recommendations: Recommendation[];
     try {
       recommendations = parseRecommendations(content);
     } catch (error) {
-      console.error("Could not parse Xkiro recommendations", getErrorMessage(error), content.slice(0, 1000));
+      console.error("Could not parse OpenRouter recommendations", getErrorMessage(error), content.slice(0, 1000));
       return jsonResponse({ error: "Impossible de lire les recommandations générées. Réessaie dans un instant." }, 502);
     }
 
     return jsonResponse({
       recommendations,
       analyzed_at: new Date().toISOString(),
-      model: xkiroModel,
+      model: openRouterModel,
     });
   } catch (error) {
     console.error("Boost AI analysis failed", getErrorMessage(error));
