@@ -83,8 +83,15 @@ serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    const { data: userResult, error: userError } = await supabaseClient.auth.getUser();
-    if (userError || !userResult.user) return jsonResponse({ error: "Session Supabase invalide." }, 401);
+    const accessToken = authorization.slice("Bearer ".length).trim();
+    const { data: userResult, error: userError } = await supabaseClient.auth.getUser(accessToken);
+    if (userError || !userResult.user) {
+      console.error("Boost AI access token validation failed", {
+        code: userError?.code ?? "missing_user",
+        status: userError?.status ?? 401,
+      });
+      return jsonResponse({ error: "Session Supabase invalide. Reconnecte-toi puis réessaie." }, 401);
+    }
 
     const { data: page, error: pageError } = await supabaseClient
       .from("pages")

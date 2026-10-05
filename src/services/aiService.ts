@@ -13,7 +13,14 @@ interface AnalyzeResponse {
 }
 
 export async function analyzePagePerformance(): Promise<AnalyzeResponse> {
-  const { data, error } = await supabase.functions.invoke<AnalyzeResponse>('boost-ai-analyze');
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error('Ta session a expiré. Reconnecte-toi avant de lancer une analyse.');
+
+  const { data, error } = await supabase.functions.invoke<AnalyzeResponse>('boost-ai-analyze', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
   if (error instanceof FunctionsHttpError && error.context instanceof Response) {
     const response = error.context;
     let body: unknown;

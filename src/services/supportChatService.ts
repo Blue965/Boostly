@@ -11,8 +11,14 @@ interface SupportChatResponse {
 }
 
 export async function sendSupportMessage(messages: SupportMessage[]): Promise<string> {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) throw sessionError;
+  const accessToken = sessionData.session?.access_token;
+  if (!accessToken) throw new Error('Ta session a expiré. Reconnecte-toi pour utiliser le support.');
+
   const { data, error } = await supabase.functions.invoke<SupportChatResponse>('boostly-support-chat', {
     body: { messages },
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
 
   if (error instanceof FunctionsHttpError && error.context instanceof Response) {

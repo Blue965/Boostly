@@ -63,8 +63,15 @@ serve(async (req) => {
       global: { headers: { Authorization: authorization } },
       auth: { persistSession: false, autoRefreshToken: false },
     });
-    const { data, error: authError } = await supabaseClient.auth.getUser();
-    if (authError || !data.user) return jsonResponse({ error: "Ta session a expiré. Reconnecte-toi et réessaie." }, 401);
+    const accessToken = authorization.slice("Bearer ".length).trim();
+    const { data, error: authError } = await supabaseClient.auth.getUser(accessToken);
+    if (authError || !data.user) {
+      console.error("Support chat access token validation failed", {
+        code: authError?.code ?? "missing_user",
+        status: authError?.status ?? 401,
+      });
+      return jsonResponse({ error: "Ta session Supabase est invalide. Reconnecte-toi et réessaie." }, 401);
+    }
 
     let requestBody: unknown;
     try {
