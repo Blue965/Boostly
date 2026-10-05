@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
-const openRouterModel = "qwen/qwen3.8-27b:free";
+const openRouterModel = "google/gemma-4-31b-it:free";
 
 interface Recommendation {
   type: string;
