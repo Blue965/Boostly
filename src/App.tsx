@@ -15,6 +15,7 @@ import { AppearanceEditor } from './pages/dashboard/AppearanceEditor';
 import { AnalyticsDashboard } from './pages/dashboard/AnalyticsDashboard';
 import { BoostAIPage } from './pages/dashboard/BoostAIPage';
 import { SubscriptionPage } from './pages/dashboard/SubscriptionPage';
+import { SupportChat } from './components/support/SupportChat';
 
 const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, loading } = useAuth();
@@ -25,6 +26,7 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
     <div className="min-h-screen bg-[#070b16] flex text-white">
       <Sidebar />
       <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
+      <SupportChat />
     </div>
   );
 };

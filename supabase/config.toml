@@ -1,2 +1,5 @@
 [functions.boost-ai-analyze]
 verify_jwt = false
+
+[functions.boostly-support-chat]
+verify_jwt = false
