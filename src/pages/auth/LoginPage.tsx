@@ -1,5 +1,5 @@
 import React from 'react';
-import { SignIn } from '@clerk/react';
+import { SignIn } from '@clerk/clerk-react';
 
 export const LoginPage: React.FC = () => (
   <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,rgba(37,99,235,0.16),transparent_55%),#070b16] flex items-center justify-center p-4">

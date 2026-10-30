@@ -1,5 +1,5 @@
 import React from 'react';
-import { SignUp } from '@clerk/react';
+import { SignUp } from '@clerk/clerk-react';
 
 export const SignupPage: React.FC = () => (
   <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,rgba(37,99,235,0.16),transparent_55%),#070b16] flex items-center justify-center p-4">

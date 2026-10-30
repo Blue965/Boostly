@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { useClerk, useUser } from '@clerk/react';
+import { useClerk, useUser } from '@clerk/clerk-react';
 
 interface AuthContextType {
   user: ReturnType<typeof useUser>['user'];
