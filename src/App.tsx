@@ -1,12 +1,11 @@
 import React from 'react';
+import { ClerkProvider } from '@clerk/react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Sidebar } from './components/layout/Sidebar';
 import { LandingPage } from './pages/LandingPage';
 import { PricingPage } from './pages/PricingPage';
-import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { LoginPage } from './pages/auth/LoginPage';
-import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { SignupPage } from './pages/auth/SignupPage';
 import { PublicPage } from './pages/PublicPage';
 import { DashboardOverview } from './pages/dashboard/DashboardOverview';
@@ -22,50 +21,23 @@ const ProtectedLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400">Chargement...</div>;
   if (!user) return <Navigate to="/login" replace />;
-
-  return (
-    <div className="min-h-screen bg-[#070b16] flex text-white">
-      <Sidebar />
-      <main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main>
-      <SupportChat />
-    </div>
-  );
+  return <div className="min-h-screen bg-[#070b16] flex text-white"><Sidebar /><main className="min-w-0 flex-1 pb-20 md:pb-0">{children}</main><SupportChat /></div>;
 };
 
 export function App() {
-  return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/u/:username" element={<PublicPage />} />
-          <Route
-            path="/dashboard/*"
-            element={
-              <ProtectedLayout>
-                <Routes>
-                  <Route path="" element={<DashboardOverview />} />
-                  <Route path="page" element={<PageEditor />} />
-                  <Route path="qr-code" element={<QrCodePage />} />
-                  <Route path="appearance" element={<AppearanceEditor />} />
-                  <Route path="analytics" element={<AnalyticsDashboard />} />
-                  <Route path="boost-ai" element={<BoostAIPage />} />
-                  <Route path="subscription" element={<SubscriptionPage />} />
-                  <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                </Routes>
-              </ProtectedLayout>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  );
+  const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+  if (!publishableKey) return <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-300">Configuration Clerk manquante.</div>;
+  return <ClerkProvider publishableKey={publishableKey}>
+    <AuthProvider><BrowserRouter><Routes>
+      <Route path="/" element={<LandingPage />} /><Route path="/pricing" element={<PricingPage />} />
+      <Route path="/login/*" element={<LoginPage />} /><Route path="/signup/*" element={<SignupPage />} />
+      <Route path="/u/:username" element={<PublicPage />} />
+      <Route path="/dashboard/*" element={<ProtectedLayout><Routes>
+        <Route path="" element={<DashboardOverview />} /><Route path="page" element={<PageEditor />} /><Route path="qr-code" element={<QrCodePage />} /><Route path="appearance" element={<AppearanceEditor />} /><Route path="analytics" element={<AnalyticsDashboard />} /><Route path="boost-ai" element={<BoostAIPage />} /><Route path="subscription" element={<SubscriptionPage />} /><Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes></ProtectedLayout>} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes></BrowserRouter></AuthProvider>
+  </ClerkProvider>;
 }
 
 export default App;
