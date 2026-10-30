@@ -43,7 +43,7 @@ function NavIcon({ name }: { name: string }) {
 export const Sidebar: React.FC = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Créateur';
+  const displayName = user?.fullName || user?.primaryEmailAddress?.emailAddress?.split('@')[0] || 'Créateur';
   const isActive = (path: string) => path === '/dashboard'
     ? location.pathname === path
     : location.pathname.startsWith(path);
