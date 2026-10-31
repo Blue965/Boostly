@@ -8,7 +8,16 @@ export interface UserPageData {
   subscription: Subscription | null;
 }
 
-export async function getUserPageData(userId: string): Promise<UserPageData> {
+export interface ClerkProfileIdentity {
+  username: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export async function getUserPageData(
+  userId: string,
+  identity?: ClerkProfileIdentity,
+): Promise<UserPageData> {
   const [profileResult, pageResult, subscriptionResult] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
     supabase.from('pages').select('*').eq('user_id', userId).maybeSingle(),
@@ -19,8 +28,24 @@ export async function getUserPageData(userId: string): Promise<UserPageData> {
   if (pageResult.error) throw pageResult.error;
   if (subscriptionResult.error) throw subscriptionResult.error;
 
-  const profile = profileResult.data;
+  let profile = profileResult.data;
   let page = pageResult.data;
+
+  if (!profile && identity) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        username: identity.username,
+        display_name: identity.displayName,
+        avatar_url: identity.avatarUrl,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    profile = data;
+  }
 
   if (profile && !page) {
     const { data, error } = await supabase
