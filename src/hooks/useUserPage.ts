@@ -35,7 +35,14 @@ export function useUserPage() {
     setError(null);
 
     try {
-      const data = await getUserPageData(user.id);
+      const emailUsername = user.primaryEmailAddress?.emailAddress.split('@')[0];
+      const username = user.username || emailUsername || `user-${user.id.slice(-8)}`;
+      const displayName = user.fullName || user.firstName || username;
+      const data = await getUserPageData(user.id, {
+        username: username.toLowerCase().replace(/[^a-z0-9_-]/g, '-').slice(0, 32),
+        displayName,
+        avatarUrl: user.imageUrl || null,
+      });
       if (currentRequestId !== requestId.current) return;
 
       setProfile(data.profile);
