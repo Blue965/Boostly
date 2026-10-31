@@ -174,6 +174,17 @@ export const LandingPage: React.FC = () => (
         </div>
       </section>
 
+      <section aria-label="Confiance des créateurs" className="border-y border-white/[0.07] bg-[#090f1d] px-5 py-7 sm:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-5 sm:flex-row">
+          <p className="text-center text-[10px] font-bold uppercase tracking-[0.2em] text-slate-600 sm:text-left">Tout ce dont vous avez besoin pour être trouvé</p>
+          <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-xs font-semibold text-slate-400">
+            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" /> Liens illimités</span>
+            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-cyan-300" /> Analytics inclus</span>
+            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-blue-400" /> Personnalisable</span>
+          </div>
+        </div>
+      </section>
+
       <section id="features" className="border-y border-white/[0.07] bg-white/[0.018] px-5 py-20 sm:px-8 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <div className="mx-auto max-w-2xl text-center">

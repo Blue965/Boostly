@@ -61,7 +61,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         <div className="px-4 pt-7">
-          <p className="mb-3 px-3 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-600">Espace de travail</p>
+          <div className="mb-3 flex items-center justify-between px-3"><p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-600">Espace de travail</p><span className="rounded-full border border-emerald-400/15 bg-emerald-400/[0.08] px-2 py-0.5 text-[8px] font-semibold text-emerald-300">En ligne</span></div>
           <nav className="space-y-1.5" aria-label="Navigation du tableau de bord">
             {navItems.map((item) => {
               const active = isActive(item.path);
