@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getUserPageData } from '../services/pageService';
 
 export function useUserPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [page, setPage] = useState<PageConfig | null>(null);
   const [links, setLinks] = useState<LinkItem[]>([]);
@@ -15,6 +15,11 @@ export function useUserPage() {
 
   const fetchUserData = useCallback(async () => {
     const currentRequestId = ++requestId.current;
+
+    if (authLoading) {
+      setLoading(true);
+      return;
+    }
 
     if (!user) {
       setProfile(null);
@@ -47,7 +52,7 @@ export function useUserPage() {
     } finally {
       if (currentRequestId === requestId.current) setLoading(false);
     }
-  }, [user]);
+  }, [authLoading, user]);
 
   useEffect(() => {
     void fetchUserData();
