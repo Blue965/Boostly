@@ -2,6 +2,16 @@
 
 :root {
   color-scheme: dark;
+  --background: #070b16;
+  --surface: #0d1423;
+  --surface-raised: #111b2e;
+  --border-subtle: rgb(255 255 255 / 8%);
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --brand: #4f8cff;
+  --brand-strong: #2563eb;
+  --accent: #67e8f9;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
